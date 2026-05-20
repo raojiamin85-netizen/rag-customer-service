@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: rag-customer-service
+    env: docker
+    rootDir: .
+    plan: free
+    envVars:
+      - key: MIMO_API_KEY
+        sync: false
