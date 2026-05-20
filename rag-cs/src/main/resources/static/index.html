@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RAG Customer Service</title>
+  <style>
+    :root {
+      --bg-1: #f6f7f9;
+      --bg-2: #e8edf3;
+      --accent: #1f7a4d;
+      --accent-2: #165b39;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #5b6577;
+      --shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Manrope", "Noto Sans", system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      background: radial-gradient(1200px 700px at 15% -10%, #ffffff, transparent),
+                  radial-gradient(900px 600px at 90% -20%, #e1e7ef, transparent),
+                  linear-gradient(135deg, var(--bg-1), var(--bg-2));
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 32px 16px;
+    }
+
+    .shell {
+      width: min(980px, 100%);
+      display: grid;
+      gap: 20px;
+    }
+
+    .hero {
+      display: grid;
+      gap: 10px;
+      text-align: left;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 42px);
+      letter-spacing: 0.2px;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 720px;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .chat {
+      height: 520px;
+      display: grid;
+      grid-template-rows: 1fr auto;
+    }
+
+    .messages {
+      padding: 20px;
+      overflow-y: auto;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    .msg {
+      padding: 14px 16px;
+      border-radius: 14px;
+      max-width: 85%;
+      line-height: 1.6;
+      font-size: 15px;
+      animation: rise 0.25s ease-out;
+    }
+
+    .msg.user {
+      background: rgba(31, 122, 77, 0.12);
+      border: 1px solid rgba(31, 122, 77, 0.35);
+      color: #0b3d28;
+      justify-self: end;
+    }
+
+    .msg.bot {
+      background: #f3f5f8;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      justify-self: start;
+    }
+
+    .composer {
+      padding: 16px;
+      border-top: 1px solid rgba(15, 23, 42, 0.08);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      background: #f7f9fc;
+    }
+
+    .composer textarea {
+      resize: none;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 14px;
+      color: var(--text);
+      background: #ffffff;
+      min-height: 54px;
+      outline: none;
+    }
+
+    .composer button {
+      border: none;
+      border-radius: 12px;
+      padding: 0 18px;
+      font-weight: 600;
+      color: #ffffff;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 0 12px 24px rgba(22, 91, 57, 0.2);
+    }
+
+    .composer button:active {
+      transform: translateY(1px);
+    }
+
+    .status {
+      padding: 8px 16px 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    @keyframes rise {
+      from { transform: translateY(6px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="hero">
+      <h1>RAG Customer Service</h1>
+      <p>Ask a question and the system will answer based on your knowledge base.</p>
+    </div>
+
+    <div class="panel chat">
+      <div class="messages" id="messages"></div>
+      <div class="status" id="status">Ready.</div>
+      <form class="composer" id="composer">
+        <textarea id="input" placeholder="Type your question..."></textarea>
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const messages = document.getElementById("messages");
+    const status = document.getElementById("status");
+    const input = document.getElementById("input");
+    const composer = document.getElementById("composer");
+
+    function addMessage(role, text) {
+      const div = document.createElement("div");
+      div.className = `msg ${role}`;
+      div.textContent = text;
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    composer.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const question = input.value.trim();
+      if (!question) return;
+
+      addMessage("user", question);
+      input.value = "";
+      status.textContent = "Thinking...";
+
+      try {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question })
+        });
+        const data = await response.json();
+        addMessage("bot", data.answer || "No answer.");
+        status.textContent = "Ready.";
+      } catch (err) {
+        status.textContent = "Request failed.";
+        addMessage("bot", "The server is unavailable. Please try again.");
+      }
+    });
+  </script>
+</body>
+</html>
